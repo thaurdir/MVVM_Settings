@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{13A14DD5-4AD1-084E-2335-5EB587DD5C24}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "MVVM_Settings",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
+}
