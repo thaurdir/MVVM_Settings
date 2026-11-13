@@ -1,0 +1,45 @@
+# ---- Defaults ----
+* text=auto
+
+# ---- Source & text (normalize line endings) ----
+*.cpp       text diff=cpp
+*.h         text diff=cpp
+*.hpp       text diff=cpp
+*.inl       text diff=cpp
+*.cs        text diff=csharp
+*.ini       text
+*.uproject  text
+*.uplugin   text
+*.json      text
+*.md        text
+*.txt       text
+*.csv       text
+*.po        text
+*.ps1       text eol=crlf
+*.bat       text eol=crlf
+*.sh        text eol=lf
+
+# ---- Unreal assets (binary, LFS) ----
+*.uasset    filter=lfs diff=lfs merge=lfs -text
+*.umap      filter=lfs diff=lfs merge=lfs -text
+
+# ---- Source art & media ----
+*.png       filter=lfs diff=lfs merge=lfs -text
+*.jpg       filter=lfs diff=lfs merge=lfs -text
+*.jpeg      filter=lfs diff=lfs merge=lfs -text
+*.tga       filter=lfs diff=lfs merge=lfs -text
+*.psd       filter=lfs diff=lfs merge=lfs -text
+*.exr       filter=lfs diff=lfs merge=lfs -text
+*.hdr       filter=lfs diff=lfs merge=lfs -text
+*.fbx       filter=lfs diff=lfs merge=lfs -text
+*.obj       filter=lfs diff=lfs merge=lfs -text
+*.wav       filter=lfs diff=lfs merge=lfs -text
+*.mp3       filter=lfs diff=lfs merge=lfs -text
+*.ogg       filter=lfs diff=lfs merge=lfs -text
+*.mp4       filter=lfs diff=lfs merge=lfs -text
+*.ttf       filter=lfs diff=lfs merge=lfs -text
+*.otf       filter=lfs diff=lfs merge=lfs -text
+
+# ---- Localization (compiled) ----
+*.locres    filter=lfs diff=lfs merge=lfs -text
+*.locmeta   filter=lfs diff=lfs merge=lfs -text
