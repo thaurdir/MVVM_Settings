@@ -8,13 +8,25 @@ public class MVVM_Settings : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+			// UI
+			"UMG",
+			"CommonUI",
+			"CommonInput",
 
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
+			// MVVM: viewmodel base class and FieldNotify support
+			"ModelViewViewModel",
+			"FieldNotification"
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
