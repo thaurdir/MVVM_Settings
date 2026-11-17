@@ -7,7 +7,10 @@ public class MVVM_Settings : ModuleRules
 	public MVVM_Settings(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
+
+		// Lets any file include headers by module-relative path, e.g. "ViewModels/SettingsViewModel.h".
+		PublicIncludePaths.Add(ModuleDirectory);
+
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
