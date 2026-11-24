@@ -5,7 +5,9 @@
 #include "CommonInputModeTypes.h"
 #include "Input/UIActionBindingHandle.h"
 #include "MVVMSubsystem.h"
+#include "UI/ConfirmationDialogWidget.h"
 #include "View/MVVMView.h"
+#include "Widgets/CommonActivatableWidgetContainer.h"
 #include "ViewModels/SettingsViewModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SettingsScreenWidget)
@@ -39,4 +41,33 @@ void USettingsScreenWidget::NativeOnInitialized()
 TOptional<FUIInputConfig> USettingsScreenWidget::GetDesiredInputConfig() const
 {
 	return FUIInputConfig(ECommonInputMode::Menu, EMouseCaptureMode::NoCapture);
+}
+
+bool USettingsScreenWidget::NativeOnHandleBackAction()
+{
+	if (SettingsViewModel && SettingsViewModel->HasUnsavedChanges())
+	{
+		if (DiscardChangesDialogClass)
+		{
+			if (UConfirmationDialogWidget* Dialog = DialogStack->AddWidget<UConfirmationDialogWidget>(DiscardChangesDialogClass))
+			{
+				Dialog->OnResult.AddUObject(this, &ThisClass::HandleDiscardChangesResult);
+				return true;
+			}
+		}
+
+		UE_LOG(LogSettingsScreen, Warning, TEXT("%s: no Discard Changes Dialog Class set. Discarding changes without asking."), *GetName());
+		SettingsViewModel->RevertChanges();
+	}
+
+	return Super::NativeOnHandleBackAction();
+}
+
+void USettingsScreenWidget::HandleDiscardChangesResult(bool bConfirmed)
+{
+	if (bConfirmed)
+	{
+		SettingsViewModel->RevertChanges();
+		DeactivateWidget();
+	}
 }

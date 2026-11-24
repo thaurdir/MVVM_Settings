@@ -36,6 +36,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Settings")
 	USettingsTabViewModelBase* FindTabByNameId(FName TabNameId) const;
 
+	// Writes every tab to the user settings, applies them, and saves GameUserSettings.ini
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void ApplyChanges();
+
+	// Returns every setting to its last applied value
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void RevertChanges();
+
+	// Sets every setting to its default. Like any other edit, it isn't saved until ApplyChanges
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void ResetToDefaults();
+
 private:
 	void HandleSettingValueChanged(USettingViewModelBase* Setting);
 	void RefreshUnsavedChanges();

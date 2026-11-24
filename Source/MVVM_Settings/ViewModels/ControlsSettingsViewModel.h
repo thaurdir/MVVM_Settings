@@ -17,6 +17,8 @@ class MVVM_SETTINGS_API UControlsSettingsViewModel : public USettingsTabViewMode
 
 public:
 	virtual void Initialize() override;
+	virtual void LoadFromSettings(const USettingsGameUserSettings& UserSettings) override;
+	virtual void SaveToSettings(USettingsGameUserSettings& UserSettings) const override;
 
 	USliderSettingViewModel* GetLookSensitivity() const { return LookSensitivity; }
 	UToggleSettingViewModel* GetInvertY() const { return InvertY; }

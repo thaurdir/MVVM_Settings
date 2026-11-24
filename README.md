@@ -2,7 +2,7 @@
 
 A game settings menu for Unreal Engine 5.8, built with **CommonUI** and the **UMG Viewmodel (MVVM)** plugin. I'm building it as a hands-on way to learn Unreal's viewmodel workflow and data binding. The goal is a small, polished, fully navigable menu whose logic lives in C++ viewmodels instead of Blueprint.
 
-> **Status:** Work in progress. All four tabs are built and bound to C++ viewmodels, with tab switching and the graphics preset logic working. Changes aren't saved yet: Apply, Revert, and persistence (Phase 4) are next. See [Roadmap](#roadmap).
+> **Status:** Work in progress. All four tabs are built and bound to C++ viewmodels. Apply, Revert, and Reset to defaults work, settings are saved to `GameUserSettings.ini` and survive a restart, and backing out with unsaved changes asks for confirmation. Input, localization, and accessibility (Phase 5) are next. See [Roadmap](#roadmap).
 
 ## What it will include
 
@@ -18,7 +18,7 @@ A pause-menu style settings screen with four tabs:
 Plus:
 
 - **Apply, Revert, and Reset to defaults**, with a "discard changes?" prompt when backing out with unsaved edits
-- **Persistence** through `UGameUserSettings` (graphics) and a save object for everything else
+- **Persistence** through a `UGameUserSettings` subclass: graphics use the engine's own fields, and the other tabs' settings are added as `Config` properties
 - **Gamepad, keyboard, and mouse navigation**, with shoulder-button tab switching and input-aware button prompts
 - **Localization** through string tables, with a German test language to prove the layout holds up with longer text
 
@@ -26,7 +26,7 @@ Plus:
 
 The menu follows Model–View–ViewModel:
 
-- **Model:** the saved settings (`UGameUserSettings` and a save object).
+- **Model:** the saved settings (`USettingsGameUserSettings`, a `UGameUserSettings` subclass saved to `GameUserSettings.ini`).
 - **Viewmodels:** C++ classes deriving from `UMVVMViewModelBase`, one per tab, owned by a parent `USettingsViewModel` that tracks unsaved changes. They load from the model and write back only on Apply.
 - **Views:** CommonUI widgets that bind to viewmodel properties. Properties are marked `FieldNotify`, so the UI updates automatically when a value changes. Widgets call viewmodel setters when the player changes something and never touch save data directly.
 
@@ -88,6 +88,7 @@ Config/                            Engine, game, and editor settings
 Content/Maps/                      MainMenu startup map
 Content/UI/Input/                  CommonUI input data and input action table
 Content/UI/Widgets/                Settings screen, tab list and buttons, tab widgets, row widgets
+Source/MVVM_Settings/Settings/     User settings class (the model)
 Source/MVVM_Settings/ViewModels/   Root, tab, and row viewmodels
 Source/MVVM_Settings/UI/           C++ base classes for widgets
 ```
@@ -99,7 +100,7 @@ Binary assets under `Content/` are stored in Git LFS.
 - [x] **1. Setup:** enable the ModelViewViewModel and CommonUI plugins, add module dependencies, configure `CommonGameViewportClient` and CommonUI input data
 - [x] **2. One working binding:** an audio viewmodel with one `FieldNotify` property, bound two-way to a slider
 - [x] **3. All four tabs:** per-tab viewmodels, a CommonUI tabbed screen, reusable row widgets, graphics preset logic
-- [ ] **4. Apply, revert, and save:** persistence and an unsaved-changes confirmation dialog
+- [x] **4. Apply, revert, and save:** persistence and an unsaved-changes confirmation dialog
 - [ ] **5. Input, localization, and accessibility:** full navigation, string tables, German test language, text scaling
 - [ ] **6. Polish and profile:** transitions and focus states, an Unreal Insights profiling pass, and a short demo video
 

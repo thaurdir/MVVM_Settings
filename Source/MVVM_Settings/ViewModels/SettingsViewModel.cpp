@@ -2,12 +2,15 @@
 
 #include "ViewModels/SettingsViewModel.h"
 
+#include "Settings/SettingsGameUserSettings.h"
 #include "ViewModels/AccessibilitySettingsViewModel.h"
 #include "ViewModels/AudioSettingsViewModel.h"
 #include "ViewModels/ControlsSettingsViewModel.h"
 #include "ViewModels/GraphicsSettingsViewModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SettingsViewModel)
+
+DEFINE_LOG_CATEGORY_STATIC(LogSettingsViewModel, Log, All);
 
 void USettingsViewModel::Initialize()
 {
@@ -16,15 +19,73 @@ void USettingsViewModel::Initialize()
 	Controls = NewObject<UControlsSettingsViewModel>(this);
 	Accessibility = NewObject<UAccessibilitySettingsViewModel>(this);
 
+	const USettingsGameUserSettings* UserSettings = USettingsGameUserSettings::Get();
+	if (!UserSettings)
+	{
+		UE_LOG(LogSettingsViewModel, Warning, TEXT("GameUserSettingsClassName isn't set to USettingsGameUserSettings. Settings show defaults and can't be saved."));
+	}
+
 	for (USettingsTabViewModelBase* Tab : GetTabs())
 	{
 		Tab->Initialize();
+		if (UserSettings)
+		{
+			Tab->LoadFromSettings(*UserSettings);
+		}
+		Tab->CommitBaseline();
+
 		for (USettingViewModelBase* Setting : Tab->GetSettings())
 		{
 			Setting->OnValueChanged.AddUObject(this, &ThisClass::HandleSettingValueChanged);
 		}
 	}
 
+	RefreshUnsavedChanges();
+}
+
+void USettingsViewModel::ApplyChanges()
+{
+	USettingsGameUserSettings* UserSettings = USettingsGameUserSettings::Get();
+	if (!UserSettings)
+	{
+		UE_LOG(LogSettingsViewModel, Error, TEXT("Can't apply settings: GameUserSettingsClassName isn't set to USettingsGameUserSettings."));
+		return;
+	}
+
+	for (const USettingsTabViewModelBase* Tab : GetTabs())
+	{
+		Tab->SaveToSettings(*UserSettings);
+	}
+
+	// Applies resolution and scalability settings, then saves GameUserSettings.ini.
+	UserSettings->ApplySettings(false);
+
+	for (USettingsTabViewModelBase* Tab : GetTabs())
+	{
+		Tab->CommitBaseline();
+	}
+	RefreshUnsavedChanges();
+}
+
+void USettingsViewModel::RevertChanges()
+{
+	for (USettingsTabViewModelBase* Tab : GetTabs())
+	{
+		Tab->RevertToBaseline();
+	}
+	RefreshUnsavedChanges();
+}
+
+void USettingsViewModel::ResetToDefaults()
+{
+	// A temporary settings object holding the defaults, so the tabs can load from it like from saved settings.
+	USettingsGameUserSettings* Defaults = NewObject<USettingsGameUserSettings>(GetTransientPackage());
+	Defaults->SetToDefaults();
+
+	for (USettingsTabViewModelBase* Tab : GetTabs())
+	{
+		Tab->LoadFromSettings(*Defaults);
+	}
 	RefreshUnsavedChanges();
 }
 
@@ -40,13 +101,10 @@ void USettingsViewModel::RefreshUnsavedChanges()
 	bool bAnyDirty = false;
 	for (const USettingsTabViewModelBase* Tab : GetTabs())
 	{
-		for (const USettingViewModelBase* Setting : Tab->GetSettings())
+		if (Tab->IsDirty())
 		{
-			if (Setting->IsDirty())
-			{
-				bAnyDirty = true;
-				break;
-			}
+			bAnyDirty = true;
+			break;
 		}
 	}
 

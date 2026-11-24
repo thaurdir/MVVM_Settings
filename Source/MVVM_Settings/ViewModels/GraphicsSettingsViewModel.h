@@ -17,6 +17,8 @@ class MVVM_SETTINGS_API UGraphicsSettingsViewModel : public USettingsTabViewMode
 
 public:
 	virtual void Initialize() override;
+	virtual void LoadFromSettings(const USettingsGameUserSettings& UserSettings) override;
+	virtual void SaveToSettings(USettingsGameUserSettings& UserSettings) const override;
 
 	UOptionSettingViewModel* GetWindowMode() const { return WindowMode; }
 	UOptionSettingViewModel* GetResolution() const { return Resolution; }
@@ -34,6 +36,9 @@ private:
 	void HandleIndividualQualityChanged(USettingViewModelBase* Setting);
 	
 	void RefreshQualityPreset();
+
+	// Index of the FrameRateLimitValues entry closest to Limit (0 = unlimited)
+	int32 FindFrameRateLimitIndex(float Limit) const;
 
 	TArray<UOptionSettingViewModel*, TInlineAllocator<4>> GetIndividualQualitySettings() const;
 

@@ -3,8 +3,8 @@
 #include "ViewModels/GraphicsSettingsViewModel.h"
 
 #include "Engine/Engine.h"
-#include "GameFramework/GameUserSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Settings/SettingsGameUserSettings.h"
 #include "ViewModels/OptionSettingViewModel.h"
 #include "ViewModels/ToggleSettingViewModel.h"
 
@@ -38,8 +38,7 @@ void UGraphicsSettingsViewModel::Initialize()
 	SetDisplayName(LOCTEXT("GraphicsTabDisplayName", "Graphics"));
 	SetTabNameId("GraphicsSettings");
 
-	const UGameUserSettings* UserSettings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
-	
+	// Window mode: option order matches EWindowMode (Fullscreen, WindowedFullscreen, Windowed).
 	WindowMode = CreateSetting<UOptionSettingViewModel>(LOCTEXT("WindowMode", "Window Mode"));
 	WindowMode->Configure(
 		{
@@ -47,12 +46,14 @@ void UGraphicsSettingsViewModel::Initialize()
 			LOCTEXT("WindowModeWindowedFullscreen", "Windowed Fullscreen"),
 			LOCTEXT("WindowModeWindowed", "Windowed")
 		},
-		UserSettings ? static_cast<int32>(UserSettings->GetFullscreenMode()) : static_cast<int32>(EWindowMode::Windowed));
+		static_cast<int32>(EWindowMode::Windowed));
 
 	// Resolution: supported fullscreen resolutions, plus the current one if it isn't in the list.
-	const FIntPoint CurrentResolution = UserSettings ? UserSettings->GetScreenResolution() : FIntPoint(1920, 1080);
 	UKismetSystemLibrary::GetSupportedFullscreenResolutions(ResolutionValues);
-	ResolutionValues.AddUnique(CurrentResolution);
+	if (const UGameUserSettings* CurrentSettings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
+	{
+		ResolutionValues.AddUnique(CurrentSettings->GetScreenResolution());
+	}
 	ResolutionValues.Sort([](const FIntPoint& A, const FIntPoint& B)
 	{
 		return A.X != B.X ? A.X < B.X : A.Y < B.Y;
@@ -66,25 +67,10 @@ void UGraphicsSettingsViewModel::Initialize()
 			FText::AsNumber(Value.Y, &FNumberFormattingOptions::DefaultNoGrouping())));
 	}
 	Resolution = CreateSetting<UOptionSettingViewModel>(LOCTEXT("Resolution", "Resolution"));
-	Resolution->Configure(ResolutionOptions, ResolutionValues.IndexOfByKey(CurrentResolution));
+	Resolution->Configure(ResolutionOptions, INDEX_NONE);
 
-	// Frame rate limit: 0 means unlimited. Picks the closest option to the saved value.
+	// Frame rate limit: 0 means unlimited.
 	FrameRateLimitValues = { 30.0f, 60.0f, 120.0f, 144.0f, 0.0f };
-	const float CurrentLimit = UserSettings ? UserSettings->GetFrameRateLimit() : 0.0f;
-	int32 FrameRateIndex = FrameRateLimitValues.Num() - 1;
-	if (CurrentLimit > 0.0f)
-	{
-		float ClosestDistance = TNumericLimits<float>::Max();
-		for (int32 Index = 0; Index < FrameRateLimitValues.Num(); ++Index)
-		{
-			const float Distance = FMath::Abs(FrameRateLimitValues[Index] - CurrentLimit);
-			if (FrameRateLimitValues[Index] > 0.0f && Distance < ClosestDistance)
-			{
-				ClosestDistance = Distance;
-				FrameRateIndex = Index;
-			}
-		}
-	}
 	FrameRateLimit = CreateSetting<UOptionSettingViewModel>(LOCTEXT("FrameRateLimit", "Frame Rate Limit"));
 	FrameRateLimit->Configure(
 		{
@@ -94,41 +80,72 @@ void UGraphicsSettingsViewModel::Initialize()
 			LOCTEXT("FrameRate144", "144 FPS"),
 			LOCTEXT("FrameRateUnlimited", "Unlimited")
 		},
-		FrameRateIndex);
+		FrameRateLimitValues.Num() - 1);
 
 	VSync = CreateSetting<UToggleSettingViewModel>(LOCTEXT("VSync", "VSync"));
-	VSync->Configure(UserSettings ? UserSettings->IsVSyncEnabled() : false);
+	VSync->Configure(false);
 
 	// Quality: the preset first, then the individual settings it controls.
 	const TArray<FText> QualityOptions = GraphicsSettings::GetQualityLevelOptions();
 	QualityPreset = CreateSetting<UOptionSettingViewModel>(LOCTEXT("QualityPreset", "Quality Preset"));
+	QualityPreset->Configure(QualityOptions, GraphicsSettings::MaxQualityLevel, LOCTEXT("QualityCustom", "Custom"));
 
 	ViewDistanceQuality = CreateSetting<UOptionSettingViewModel>(LOCTEXT("ViewDistanceQuality", "View Distance"));
-	ViewDistanceQuality->Configure(QualityOptions, GraphicsSettings::ToQualityIndex(UserSettings ? UserSettings->GetViewDistanceQuality() : GraphicsSettings::MaxQualityLevel));
-
 	ShadowQuality = CreateSetting<UOptionSettingViewModel>(LOCTEXT("ShadowQuality", "Shadows"));
-	ShadowQuality->Configure(QualityOptions, GraphicsSettings::ToQualityIndex(UserSettings ? UserSettings->GetShadowQuality() : GraphicsSettings::MaxQualityLevel));
-
 	TextureQuality = CreateSetting<UOptionSettingViewModel>(LOCTEXT("TextureQuality", "Textures"));
-	TextureQuality->Configure(QualityOptions, GraphicsSettings::ToQualityIndex(UserSettings ? UserSettings->GetTextureQuality() : GraphicsSettings::MaxQualityLevel));
-
 	EffectsQuality = CreateSetting<UOptionSettingViewModel>(LOCTEXT("EffectsQuality", "Effects"));
-	EffectsQuality->Configure(QualityOptions, GraphicsSettings::ToQualityIndex(UserSettings ? UserSettings->GetVisualEffectQuality() : GraphicsSettings::MaxQualityLevel));
-
-	// Configure the preset from the individual settings so its baseline matches them.
-	QualityPreset->Configure(QualityOptions, INDEX_NONE, LOCTEXT("QualityCustom", "Custom"));
-	RefreshQualityPreset();
-	QualityPreset->CommitBaseline();
+	for (UOptionSettingViewModel* QualitySetting : GetIndividualQualitySettings())
+	{
+		QualitySetting->Configure(QualityOptions, GraphicsSettings::MaxQualityLevel);
+	}
 
 	// Dependencies between settings.
 	WindowMode->OnValueChanged.AddUObject(this, &ThisClass::HandleWindowModeChanged);
 	QualityPreset->OnValueChanged.AddUObject(this, &ThisClass::HandleQualityPresetChanged);
-	for (UOptionSettingViewModel* Setting : GetIndividualQualitySettings())
+	for (UOptionSettingViewModel* QualitySetting : GetIndividualQualitySettings())
 	{
-		Setting->OnValueChanged.AddUObject(this, &ThisClass::HandleIndividualQualityChanged);
+		QualitySetting->OnValueChanged.AddUObject(this, &ThisClass::HandleIndividualQualityChanged);
 	}
 
 	HandleWindowModeChanged(WindowMode);
+}
+
+void UGraphicsSettingsViewModel::LoadFromSettings(const USettingsGameUserSettings& UserSettings)
+{
+	WindowMode->SetSelectedIndex(static_cast<int32>(UserSettings.GetFullscreenMode()));
+	Resolution->SetSelectedIndex(ResolutionValues.IndexOfByKey(UserSettings.GetScreenResolution()));
+	FrameRateLimit->SetSelectedIndex(FindFrameRateLimitIndex(UserSettings.GetFrameRateLimit()));
+	VSync->SetValue(UserSettings.IsVSyncEnabled());
+
+	// Set the individual qualities without the preset overwriting them, then derive the preset.
+	TGuardValue<bool> Guard(bSyncingQuality, true);
+	ViewDistanceQuality->SetSelectedIndex(GraphicsSettings::ToQualityIndex(UserSettings.GetViewDistanceQuality()));
+	ShadowQuality->SetSelectedIndex(GraphicsSettings::ToQualityIndex(UserSettings.GetShadowQuality()));
+	TextureQuality->SetSelectedIndex(GraphicsSettings::ToQualityIndex(UserSettings.GetTextureQuality()));
+	EffectsQuality->SetSelectedIndex(GraphicsSettings::ToQualityIndex(UserSettings.GetVisualEffectQuality()));
+	RefreshQualityPreset();
+}
+
+void UGraphicsSettingsViewModel::SaveToSettings(USettingsGameUserSettings& UserSettings) const
+{
+	UserSettings.SetFullscreenMode(EWindowMode::ConvertIntToWindowMode(WindowMode->GetSelectedIndex()));
+
+	if (ResolutionValues.IsValidIndex(Resolution->GetSelectedIndex()))
+	{
+		UserSettings.SetScreenResolution(ResolutionValues[Resolution->GetSelectedIndex()]);
+	}
+
+	if (FrameRateLimitValues.IsValidIndex(FrameRateLimit->GetSelectedIndex()))
+	{
+		UserSettings.SetFrameRateLimit(FrameRateLimitValues[FrameRateLimit->GetSelectedIndex()]);
+	}
+
+	UserSettings.SetVSyncEnabled(VSync->GetValue());
+
+	UserSettings.SetViewDistanceQuality(ViewDistanceQuality->GetSelectedIndex());
+	UserSettings.SetShadowQuality(ShadowQuality->GetSelectedIndex());
+	UserSettings.SetTextureQuality(TextureQuality->GetSelectedIndex());
+	UserSettings.SetVisualEffectQuality(EffectsQuality->GetSelectedIndex());
 }
 
 void UGraphicsSettingsViewModel::HandleWindowModeChanged(USettingViewModelBase* Setting)
@@ -177,6 +194,28 @@ void UGraphicsSettingsViewModel::RefreshQualityPreset()
 	}
 
 	QualityPreset->SetSelectedIndex(SharedIndex);
+}
+
+int32 UGraphicsSettingsViewModel::FindFrameRateLimitIndex(float Limit) const
+{
+	const int32 UnlimitedIndex = FrameRateLimitValues.IndexOfByKey(0.0f);
+	if (Limit <= 0.0f)
+	{
+		return UnlimitedIndex;
+	}
+
+	int32 ClosestIndex = UnlimitedIndex;
+	float ClosestDistance = TNumericLimits<float>::Max();
+	for (int32 Index = 0; Index < FrameRateLimitValues.Num(); ++Index)
+	{
+		const float Distance = FMath::Abs(FrameRateLimitValues[Index] - Limit);
+		if (FrameRateLimitValues[Index] > 0.0f && Distance < ClosestDistance)
+		{
+			ClosestDistance = Distance;
+			ClosestIndex = Index;
+		}
+	}
+	return ClosestIndex;
 }
 
 TArray<UOptionSettingViewModel*, TInlineAllocator<4>> UGraphicsSettingsViewModel::GetIndividualQualitySettings() const

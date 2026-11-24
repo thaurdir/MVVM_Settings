@@ -16,6 +16,8 @@ class MVVM_SETTINGS_API UAudioSettingsViewModel : public USettingsTabViewModelBa
 
 public:
 	virtual void Initialize() override;
+	virtual void LoadFromSettings(const USettingsGameUserSettings& UserSettings) override;
+	virtual void SaveToSettings(USettingsGameUserSettings& UserSettings) const override;
 
 	USliderSettingViewModel* GetMasterVolume() const { return MasterVolume; }
 	USliderSettingViewModel* GetMusicVolume() const { return MusicVolume; }

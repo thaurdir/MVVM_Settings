@@ -2,6 +2,7 @@
 
 #include "ViewModels/ControlsSettingsViewModel.h"
 
+#include "Settings/SettingsGameUserSettings.h"
 #include "ViewModels/SliderSettingViewModel.h"
 #include "ViewModels/ToggleSettingViewModel.h"
 
@@ -14,7 +15,6 @@ void UControlsSettingsViewModel::Initialize()
 	SetDisplayName(LOCTEXT("ControlsTabDisplayName", "Controls"));
 	SetTabNameId("ControlsSettings");
 
-	// TODO: Read settings from save object instead of hardcoding defaults
 	LookSensitivity = CreateSetting<USliderSettingViewModel>(LOCTEXT("LookSensitivity", "Look Sensitivity"));
 	LookSensitivity->Configure(0.1f, 5.0f, 0.1f, 1.0f, ESliderValueFormat::Decimal);
 
@@ -23,6 +23,20 @@ void UControlsSettingsViewModel::Initialize()
 
 	Vibration = CreateSetting<UToggleSettingViewModel>(LOCTEXT("Vibration", "Vibration"));
 	Vibration->Configure(true);
+}
+
+void UControlsSettingsViewModel::LoadFromSettings(const USettingsGameUserSettings& UserSettings)
+{
+	LookSensitivity->SetValue(UserSettings.LookSensitivity);
+	InvertY->SetValue(UserSettings.bInvertY);
+	Vibration->SetValue(UserSettings.bVibration);
+}
+
+void UControlsSettingsViewModel::SaveToSettings(USettingsGameUserSettings& UserSettings) const
+{
+	UserSettings.LookSensitivity = LookSensitivity->GetValue();
+	UserSettings.bInvertY = InvertY->GetValue();
+	UserSettings.bVibration = Vibration->GetValue();
 }
 
 #undef LOCTEXT_NAMESPACE

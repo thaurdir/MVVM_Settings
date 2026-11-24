@@ -7,6 +7,8 @@
 #include "ViewModels/SettingViewModelBase.h"
 #include "SettingsTabViewModelBase.generated.h"
 
+class USettingsGameUserSettings;
+
 /**
  * Base class for one tab of the settings menu. A tab owns its setting (row) viewmodels.
  *
@@ -20,9 +22,19 @@ class MVVM_SETTINGS_API USettingsTabViewModelBase : public UMVVMViewModelBase
 	GENERATED_BODY()
 
 public:
-	// Creates the tab's settings and loads their current values
+	// Creates the tab's settings. Called once by the owner, before LoadFromSettings
 	virtual void Initialize() PURE_VIRTUAL(USettingsTabViewModelBase::Initialize, );
-	
+
+	// Sets the tab's values from the user settings. Doesn't change the baselines
+	virtual void LoadFromSettings(const USettingsGameUserSettings& UserSettings) PURE_VIRTUAL(USettingsTabViewModelBase::LoadFromSettings, );
+
+	// Writes the tab's values to the user settings. Doesn't apply or save them
+	virtual void SaveToSettings(USettingsGameUserSettings& UserSettings) const PURE_VIRTUAL(USettingsTabViewModelBase::SaveToSettings, );
+
+	bool IsDirty() const;
+	void RevertToBaseline();
+	void CommitBaseline();
+
 	const FText& GetDisplayName() const { return DisplayName; }
 	const FName& GetTabNameId() const { return TabNameId; }
 

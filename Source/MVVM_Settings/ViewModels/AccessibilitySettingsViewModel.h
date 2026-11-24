@@ -17,6 +17,8 @@ class MVVM_SETTINGS_API UAccessibilitySettingsViewModel : public USettingsTabVie
 
 public:
 	virtual void Initialize() override;
+	virtual void LoadFromSettings(const USettingsGameUserSettings& UserSettings) override;
+	virtual void SaveToSettings(USettingsGameUserSettings& UserSettings) const override;
 
 	UOptionSettingViewModel* GetTextSize() const { return TextSize; }
 	UToggleSettingViewModel* GetSubtitles() const { return Subtitles; }

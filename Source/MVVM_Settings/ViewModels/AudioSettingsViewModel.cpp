@@ -3,6 +3,7 @@
 #include "ViewModels/AudioSettingsViewModel.h"
 
 #include "HAL/IConsoleManager.h"
+#include "Settings/SettingsGameUserSettings.h"
 #include "UObject/UObjectIterator.h"
 #include "ViewModels/SliderSettingViewModel.h"
 
@@ -14,8 +15,7 @@ void UAudioSettingsViewModel::Initialize()
 {
 	SetDisplayName(LOCTEXT("AudioTabDisplayName", "Audio"));
 	SetTabNameId("AudioSettings");
-	
-	// TODO: Read settings from save object instead of hardcoding defaults
+
 	MasterVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("MasterVolume", "Master Volume"));
 	MasterVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
 
@@ -27,6 +27,23 @@ void UAudioSettingsViewModel::Initialize()
 
 	DialogueVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("DialogueVolume", "Dialogue Volume"));
 	DialogueVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
+}
+
+void UAudioSettingsViewModel::LoadFromSettings(const USettingsGameUserSettings& UserSettings)
+{
+	MasterVolume->SetValue(UserSettings.MasterVolume);
+	MusicVolume->SetValue(UserSettings.MusicVolume);
+	EffectsVolume->SetValue(UserSettings.EffectsVolume);
+	DialogueVolume->SetValue(UserSettings.DialogueVolume);
+}
+
+void UAudioSettingsViewModel::SaveToSettings(USettingsGameUserSettings& UserSettings) const
+{
+	// TODO: Apply the volumes to sound classes. For now they're only saved
+	UserSettings.MasterVolume = MasterVolume->GetValue();
+	UserSettings.MusicVolume = MusicVolume->GetValue();
+	UserSettings.EffectsVolume = EffectsVolume->GetValue();
+	UserSettings.DialogueVolume = DialogueVolume->GetValue();
 }
 
 #undef LOCTEXT_NAMESPACE

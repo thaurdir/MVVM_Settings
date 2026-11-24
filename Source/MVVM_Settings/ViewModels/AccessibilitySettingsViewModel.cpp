@@ -2,6 +2,7 @@
 
 #include "ViewModels/AccessibilitySettingsViewModel.h"
 
+#include "Settings/SettingsGameUserSettings.h"
 #include "ViewModels/OptionSettingViewModel.h"
 #include "ViewModels/ToggleSettingViewModel.h"
 
@@ -14,7 +15,7 @@ void UAccessibilitySettingsViewModel::Initialize()
 	SetDisplayName(LOCTEXT("AccessibilityTabDisplayName", "Accessibility"));
 	SetTabNameId("AccessibilitySettings");
 
-	// TODO: Read settings from save object instead of hardcoding defaults
+	// Option order matches ESettingsTextSize and ESettingsColorblindMode
 	TextSize = CreateSetting<UOptionSettingViewModel>(LOCTEXT("TextSize", "Text Size"));
 	TextSize->Configure(
 		{
@@ -43,6 +44,22 @@ void UAccessibilitySettingsViewModel::Initialize()
 
 	Subtitles->OnValueChanged.AddUObject(this, &ThisClass::HandleSubtitlesChanged);
 	HandleSubtitlesChanged(Subtitles);
+}
+
+void UAccessibilitySettingsViewModel::LoadFromSettings(const USettingsGameUserSettings& UserSettings)
+{
+	TextSize->SetSelectedIndex(static_cast<int32>(UserSettings.TextSize));
+	Subtitles->SetValue(UserSettings.bSubtitles);
+	SubtitleBackground->SetValue(UserSettings.bSubtitleBackground);
+	ColorblindMode->SetSelectedIndex(static_cast<int32>(UserSettings.ColorblindMode));
+}
+
+void UAccessibilitySettingsViewModel::SaveToSettings(USettingsGameUserSettings& UserSettings) const
+{
+	UserSettings.TextSize = static_cast<ESettingsTextSize>(TextSize->GetSelectedIndex());
+	UserSettings.bSubtitles = Subtitles->GetValue();
+	UserSettings.bSubtitleBackground = SubtitleBackground->GetValue();
+	UserSettings.ColorblindMode = static_cast<ESettingsColorblindMode>(ColorblindMode->GetSelectedIndex());
 }
 
 void UAccessibilitySettingsViewModel::HandleSubtitlesChanged(USettingViewModelBase* Setting)
