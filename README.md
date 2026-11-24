@@ -2,7 +2,7 @@
 
 A game settings menu for Unreal Engine 5.8, built with **CommonUI** and the **UMG Viewmodel (MVVM)** plugin. I'm building it as a hands-on way to learn Unreal's viewmodel workflow and data binding. The goal is a small, polished, fully navigable menu whose logic lives in C++ viewmodels instead of Blueprint.
 
-> **Status:** Early work in progress. The project skeleton is in place; plugin setup (Phase 1) is next. See [Roadmap](#roadmap).
+> **Status:** Work in progress. All four tabs are built and bound to C++ viewmodels, with tab switching and the graphics preset logic working. Changes aren't saved yet: Apply, Revert, and persistence (Phase 4) are next. See [Roadmap](#roadmap).
 
 ## What it will include
 
@@ -32,14 +32,46 @@ The menu follows Model–View–ViewModel:
 
 Keeping the logic out of the widgets means the viewmodels can be tested without any UI, and a second view could reuse the same viewmodels.
 
-_A diagram and a walkthrough of how one setting flows from the save file to the screen will be added as the project takes shape._
+### Viewmodels
+
+The viewmodels form a three-level tree:
+
+| Level | Classes | Responsibility |
+| --- | --- | --- |
+| Root | `USettingsViewModel` | Owns the four tab viewmodels and exposes `HasUnsavedChanges`, recomputed whenever any setting changes |
+| Tab | `UGraphicsSettingsViewModel`, `UAudioSettingsViewModel`, `UControlsSettingsViewModel`, `UAccessibilitySettingsViewModel` (base: `USettingsTabViewModelBase`) | Creates the tab's settings, exposes its display name and tab ID, and handles dependencies between settings |
+| Row | `USliderSettingViewModel`, `UToggleSettingViewModel`, `UOptionSettingViewModel` (base: `USettingViewModelBase`) | One setting: its value, display name, and whether it's editable, plus a baseline used for dirty tracking and revert |
+
+Each tab exposes its settings as individual `FieldNotify` properties, so a tab widget can bind each row widget to one by name. Each row viewmodel compares its current value against its baseline, so moving a slider back to where it started clears the unsaved state again.
+
+Examples of settings that depend on others:
+
+- **Graphics quality preset:** picking a preset sets view distance, shadows, textures, and effects. Changing any one of them switches the preset to *Custom*, unless all four match a level again.
+- **Resolution** is locked in Windowed Fullscreen mode.
+- **Subtitle background** is only editable while subtitles are on.
+
+### Views
+
+- **`USettingsScreenWidget`** (C++ base of `WBP_SettingsScreen`) is a `UCommonActivatableWidget`. It creates the root viewmodel and hands it to the Blueprint's *Manual* viewmodel slot through `UMVVMView::SetViewModelByClass`. It also requests menu input mode and handles Back.
+- **`WBP_SettingsScreen`** registers each tab with `WBP_SettingsTabList` (a `UCommonTabListWidgetBase`), linked to a widget switcher that holds the four tab widgets. Its bindings pass each tab viewmodel down to its tab widget.
+- **Tab buttons** are created by the tab list. When each one is created, the screen looks up its viewmodel with `FindTabByNameId`, and the button's label binds to the tab's `DisplayName`.
+- **Row widgets** (`WBP_SliderSetting`, `WBP_ToggleSetting`, `WBP_OptionSetting`) each bind to a single row viewmodel. Every tab is built from these three pieces.
+
+_A diagram and a walkthrough of how one setting flows from the save file to the screen will be added once saving is in place._
+
+### Lessons learned so far
+
+- **Order of events:** a widget's MVVM view is created during `UUserWidget::NativeOnInitialized`, and its bindings first run at Construct. Anything in Blueprint that needs the viewmodel or bindings belongs in Event Construct, not On Initialized.
+- **Late viewmodels are fine:** setting a *Manual* viewmodel after Construct still works, because MVVM runs that viewmodel's bindings as soon as it's set.
+- **`RegisterTab` doesn't place the button:** it creates the button and adds it to the tab list's selection group, but putting it on screen is up to you (in `HandleTabCreation`). Leave `TabIndex` at `-1` to append; any other value inserts the tab and rebuilds the list, which re-registers tabs in an unpredictable order.
+- **The tab list clears its tabs on Destruct**, so guard registration with "tab count is 0" rather than a Do Once.
 
 ## Getting started
 
 ### Requirements
 
 - Unreal Engine 5.8
-- Visual Studio 2022 or later with the C++ game development workload (the included `.vsconfig` lists the required components)
+- Visual Studio 2022 or later with the C++ game development workload (the included `.vsconfig` lists the required components), or JetBrains Rider
 - [Git LFS](https://git-lfs.com/) (binary assets such as `.uasset` and `.umap` are stored in LFS)
 
 ### Build and run
@@ -52,21 +84,26 @@ _A diagram and a walkthrough of how one setting flows from the save file to the 
 ## Project layout
 
 ```
-Config/                 Engine, game, and editor settings
-Content/                Widgets, input data, string tables (Git LFS)
-Source/MVVM_Settings/   C++ game module (viewmodels and supporting code)
+Config/                            Engine, game, and editor settings
+Content/Maps/                      MainMenu startup map
+Content/UI/Input/                  CommonUI input data and input action table
+Content/UI/Widgets/                Settings screen, tab list and buttons, tab widgets, row widgets
+Source/MVVM_Settings/ViewModels/   Root, tab, and row viewmodels
+Source/MVVM_Settings/UI/           C++ base classes for widgets
 ```
+
+Binary assets under `Content/` are stored in Git LFS.
 
 ## Roadmap
 
-- [ ] **1. Setup:** enable the ModelViewViewModel and CommonUI plugins, add module dependencies, configure `CommonGameViewportClient` and CommonUI input data
-- [ ] **2. One working binding:** an audio viewmodel with one `FieldNotify` property, bound two-way to a slider
-- [ ] **3. All four tabs:** per-tab viewmodels, a CommonUI tabbed screen, reusable row widgets, graphics preset logic
+- [x] **1. Setup:** enable the ModelViewViewModel and CommonUI plugins, add module dependencies, configure `CommonGameViewportClient` and CommonUI input data
+- [x] **2. One working binding:** an audio viewmodel with one `FieldNotify` property, bound two-way to a slider
+- [x] **3. All four tabs:** per-tab viewmodels, a CommonUI tabbed screen, reusable row widgets, graphics preset logic
 - [ ] **4. Apply, revert, and save:** persistence and an unsaved-changes confirmation dialog
 - [ ] **5. Input, localization, and accessibility:** full navigation, string tables, German test language, text scaling
 - [ ] **6. Polish and profile:** transitions and focus states, an Unreal Insights profiling pass, and a short demo video
 
-**Stretch goals:** key remapping with Enhanced Input, a brightness calibration screen, automated viewmodel tests, and a second compact view bound to the same viewmodels.
+**Stretch goals:** key remapping with Enhanced Input, a comparison of CommonUI's data-table input actions with its Enhanced Input support, a brightness calibration screen, automated viewmodel tests, and a second compact view bound to the same viewmodels.
 
 ## Resources
 
