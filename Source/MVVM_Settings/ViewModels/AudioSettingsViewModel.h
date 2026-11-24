@@ -3,25 +3,35 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MVVMViewModelBase.h"
+#include "ViewModels/SettingsTabViewModelBase.h"
 #include "AudioSettingsViewModel.generated.h"
 
-/**
- * Viewmodel for the Audio tab.
- */
+class USliderSettingViewModel;
+
+// Viewmodel for the Audio tab
 UCLASS(BlueprintType, DisplayName = "Audio Settings Viewmodel")
-class MVVM_SETTINGS_API UAudioSettingsViewModel : public UMVVMViewModelBase
+class MVVM_SETTINGS_API UAudioSettingsViewModel : public USettingsTabViewModelBase
 {
 	GENERATED_BODY()
 
 public:
-	float GetMasterVolume() const { return MasterVolume; }
-	void SetMasterVolume(float NewMasterVolume);
-	
-	UFUNCTION(BlueprintPure, FieldNotify, Category = "Audio")
-	FText GetMasterVolumeText() const;
+	virtual void Initialize() override;
+
+	USliderSettingViewModel* GetMasterVolume() const { return MasterVolume; }
+	USliderSettingViewModel* GetMusicVolume() const { return MusicVolume; }
+	USliderSettingViewModel* GetEffectsVolume() const { return EffectsVolume; }
+	USliderSettingViewModel* GetDialogueVolume() const { return DialogueVolume; }
 
 private:
-	UPROPERTY(BlueprintReadWrite, FieldNotify, Getter, Setter, Category = "Audio", meta = (AllowPrivateAccess, UIMin = "0", UIMax = "1", ClampMin = "0", ClampMax = "1"))
-	float MasterVolume = 1.0f;
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "Audio", meta = (AllowPrivateAccess))
+	TObjectPtr<USliderSettingViewModel> MasterVolume;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "Audio", meta = (AllowPrivateAccess))
+	TObjectPtr<USliderSettingViewModel> MusicVolume;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "Audio", meta = (AllowPrivateAccess))
+	TObjectPtr<USliderSettingViewModel> EffectsVolume;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "Audio", meta = (AllowPrivateAccess))
+	TObjectPtr<USliderSettingViewModel> DialogueVolume;
 };

@@ -1,26 +1,35 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AudioSettingsViewModel.h"
+#include "ViewModels/AudioSettingsViewModel.h"
 
 #include "HAL/IConsoleManager.h"
 #include "UObject/UObjectIterator.h"
+#include "ViewModels/SliderSettingViewModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AudioSettingsViewModel)
 
-void UAudioSettingsViewModel::SetMasterVolume(float NewMasterVolume)
+#define LOCTEXT_NAMESPACE "Settings"
+
+void UAudioSettingsViewModel::Initialize()
 {
-	// Compares, assigns, and broadcasts the MasterVolume's change event only if the value is changed.
-	if (UE_MVVM_SET_PROPERTY_VALUE(MasterVolume, FMath::Clamp(NewMasterVolume, 0.0f, 1.0f)))
-	{
-		// GetMasterVolumeText() is computed from MasterVolume, so tell its bindings to re-read it.
-		UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(GetMasterVolumeText);
-	}
+	SetDisplayName(LOCTEXT("AudioTabDisplayName", "Audio"));
+	SetTabNameId("AudioSettings");
+	
+	// TODO: Read settings from save object instead of hardcoding defaults
+	MasterVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("MasterVolume", "Master Volume"));
+	MasterVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
+
+	MusicVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("MusicVolume", "Music Volume"));
+	MusicVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
+
+	EffectsVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("EffectsVolume", "Effects Volume"));
+	EffectsVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
+
+	DialogueVolume = CreateSetting<USliderSettingViewModel>(LOCTEXT("DialogueVolume", "Dialogue Volume"));
+	DialogueVolume->Configure(0.0f, 1.0f, 0.01f, 1.0f, ESliderValueFormat::Percent);
 }
 
-FText UAudioSettingsViewModel::GetMasterVolumeText() const
-{
-	return FText::AsPercent(MasterVolume);
-}
+#undef LOCTEXT_NAMESPACE
 
 #if !UE_BUILD_SHIPPING
 // Debug-only console command for testing the C++ -> UI direction
@@ -38,9 +47,9 @@ static FAutoConsoleCommand GSetMasterVolumeCommand(
 		for (TObjectIterator<UAudioSettingsViewModel> It; It; ++It)
 		{
 			// Skip the class default object; only live instances are bound to widgets.
-			if (!It->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+			if (!It->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && It->GetMasterVolume())
 			{
-				It->SetMasterVolume(NewValue);
+				It->GetMasterVolume()->SetValue(NewValue);
 			}
 		}
 	}));
