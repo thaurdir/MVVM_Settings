@@ -23,6 +23,8 @@ public:
 	USliderSettingViewModel* GetLookSensitivity() const { return LookSensitivity; }
 	UToggleSettingViewModel* GetInvertY() const { return InvertY; }
 	UToggleSettingViewModel* GetVibration() const { return Vibration; }
+	
+	void SetUsingGamepad(bool bUsingGamepad);
 
 private:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "Controls", meta = (AllowPrivateAccess))

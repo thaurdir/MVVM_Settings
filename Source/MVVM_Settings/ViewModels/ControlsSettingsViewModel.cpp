@@ -39,4 +39,10 @@ void UControlsSettingsViewModel::SaveToSettings(USettingsGameUserSettings& UserS
 	UserSettings.bVibration = Vibration->GetValue();
 }
 
+void UControlsSettingsViewModel::SetUsingGamepad(bool bUsingGamepad)
+{
+	// Vibration is only editable while a gamepad is in use
+	Vibration->SetIsEditable(bUsingGamepad);
+}
+
 #undef LOCTEXT_NAMESPACE

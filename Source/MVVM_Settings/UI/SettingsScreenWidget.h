@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CommonActivatableWidget.h"
+#include "CommonInputTypeEnum.h"
 #include "SettingsScreenWidget.generated.h"
 
 class UCommonActivatableWidgetStack;
@@ -38,6 +39,7 @@ protected:
 
 private:
 	void HandleDiscardChangesResult(bool bConfirmed);
+	void HandleInputMethodChanged(ECommonInputType InputType);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USettingsViewModel> SettingsViewModel;

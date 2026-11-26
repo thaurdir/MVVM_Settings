@@ -3,11 +3,13 @@
 #include "UI/SettingsScreenWidget.h"
 
 #include "CommonInputModeTypes.h"
+#include "CommonInputSubsystem.h"
 #include "Input/UIActionBindingHandle.h"
 #include "MVVMSubsystem.h"
 #include "UI/ConfirmationDialogWidget.h"
 #include "View/MVVMView.h"
 #include "Widgets/CommonActivatableWidgetContainer.h"
+#include "ViewModels/ControlsSettingsViewModel.h"
 #include "ViewModels/SettingsViewModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SettingsScreenWidget)
@@ -35,6 +37,13 @@ void USettingsScreenWidget::NativeOnInitialized()
 		UE_LOG(LogSettingsScreen, Warning,
 			TEXT("%s: couldn't set the Settings Viewmodel. Add one in the widget's Viewmodels panel with Creation Type 'Manual'."),
 			*GetName());
+	}
+
+	// Gamepad-only settings follow the active input method
+	if (UCommonInputSubsystem* InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer()))
+	{
+		InputSubsystem->OnInputMethodChangedNative.AddUObject(this, &ThisClass::HandleInputMethodChanged);
+		HandleInputMethodChanged(InputSubsystem->GetCurrentInputType());
 	}
 }
 
@@ -70,4 +79,9 @@ void USettingsScreenWidget::HandleDiscardChangesResult(bool bConfirmed)
 		SettingsViewModel->RevertChanges();
 		DeactivateWidget();
 	}
+}
+
+void USettingsScreenWidget::HandleInputMethodChanged(ECommonInputType InputType)
+{
+	SettingsViewModel->GetControls()->SetUsingGamepad(InputType == ECommonInputType::Gamepad);
 }
