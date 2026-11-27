@@ -106,6 +106,10 @@ Binary assets under `Content/` are stored in Git LFS.
 
 **Stretch goals:** key remapping with Enhanced Input, a comparison of CommonUI's data-table input actions with its Enhanced Input support, a brightness calibration screen, automated viewmodel tests, and a second compact view bound to the same viewmodels.
 
+## Credits
+
+- Input prompt icons from the [Input Prompts](https://kenney.nl/assets/input-prompts) pack by [Kenney](https://kenney.nl), released under CC0
+
 ## Resources
 
 - [UMG Viewmodel for Unreal Engine](https://dev.epicgames.com/documentation/en-us/unreal-engine/umg-viewmodel-for-unreal-engine) (Epic documentation)
